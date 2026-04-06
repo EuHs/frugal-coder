@@ -12,7 +12,7 @@ import sys
 import urllib.request
 
 PORT = os.environ.get("FRUGAL_PORT", "4010")
-MODEL = os.environ.get("FRUGAL_MODEL", "YOUR_MODEL")
+MODEL = os.environ.get("FRUGAL_MODEL", "grok-4.1-fast")
 
 SYSTEM_PROMPT = """你是一个任务执行协调员（Coordinator）。
 

@@ -17,7 +17,7 @@ import sys
 import urllib.request
 
 PORT = os.environ.get("FRUGAL_PORT", "4010")
-MODEL = os.environ.get("FRUGAL_MODEL", "any")
+MODEL = os.environ.get("FRUGAL_MODEL", "grok-4.1-fast")
 
 
 def ask(prompt: str) -> str:

@@ -201,8 +201,35 @@ Then choose which gateway to use based on task complexity.
 | SSL errors | Self-signed cert | Gateway handles this automatically |
 | Port in use | Another instance running | Kill old process or use `--port` |
 
+## Daily Audit (每日审计)
+
+每天 08:00 Asia/Shanghai 自动运行：
+
+```bash
+python3 ~/.openclaw/skills/frugal-coder/scripts/frugal-audit.py
+```
+
+### 审计内容
+- 分析前一天所有 session 聊天记录
+- 识别主模型处理了但本应委托给 Grok 的认知任务
+- 发现遗漏后自动更新 AGENTS.md 路由规则 + git commit
+
+### 识别类型
+| 任务类型 | 判断标准 |
+|---|---|
+| CODE_WRITE | 主模型回复含代码块（```python 等）但未经 Aider |
+| CODE_REVIEW | 含代码审查意图但主模型直接回复 |
+| DEBUG | 含调试/报错意图但主模型直接分析 |
+
+### 报告位置
+- 路由表：`~/.openclaw/workspace/frugal-coder/routing-table.md`
+- 改进注入：`~/.openclaw/workspace/AGENTS.md` 路由规则部分
+
 ## Files
 
 - `scripts/frugal-gateway.py` — Unified API gateway (SSE fix, tool stripping, routing)
 - `scripts/frugal-ask.py` — Quick text Q&A helper
+- `scripts/thinking-classifier.py` — Grok 思考引擎（核心）
+- `scripts/task-classifier.py` — 自动任务分类器
+- `scripts/frugal-audit.py` — 每日审计脚本
 - `config.yaml` — Provider configuration (user-editable)
