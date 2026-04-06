@@ -1,0 +1,14 @@
+# Frugal Coder 配置 - Grok2API
+# 用户: euhs 的实际配置
+
+provider:
+  api_base: "https://www.tongxuanzn.icu/v1"
+  api_key: "YJT1025zxy0427"
+  model: "grok-4.1-fast"
+  fix_sse: true
+  strip_tools: true
+  timeout: 180
+
+gateway:
+  host: "127.0.0.1"
+  port: 4010

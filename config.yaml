@@ -1,0 +1,18 @@
+# Frugal Coder - 用户配置
+# 填入你的便宜模型 provider 信息
+
+provider:
+  # === API 配置 ===
+  # 支持任意 OpenAI-compatible API
+  api_base: "https://www.tongxuanzn.icu/v1"
+  api_key: "YJT1025zxy0427"
+  model: "grok-4.20-beta"
+
+  # === 行为配置 ===
+  fix_sse: true        # 逆向代理通常需要（强制 SSE→JSON 修复）
+  strip_tools: true    # 不支持 tool calling 的模型需要
+  timeout: 180
+
+gateway:
+  host: "127.0.0.1"
+  port: 4010
