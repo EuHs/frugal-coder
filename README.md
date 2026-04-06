@@ -51,8 +51,8 @@ provider:
 
 ```yaml
 provider:
-  api_base: "https://www.tongxuanzn.icu/v1"
-  api_key: "your-grok2api-key"
+  api_base: "https://YOUR_UPSTREAM_API/v1"
+  api_key: "YOUR_API_KEY"
   model: "grok-4.1-fast"
   fix_sse: true
   strip_tools: true

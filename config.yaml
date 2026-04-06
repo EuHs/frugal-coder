@@ -4,8 +4,8 @@
 provider:
   # === API 配置 ===
   # 支持任意 OpenAI-compatible API
-  api_base: "https://www.tongxuanzn.icu/v1"
-  api_key: "YJT1025zxy0427"
+  api_base: "https://www.YOUR_UPSTREAM_API/v1"
+  api_key: "YOUR_API_KEY"
   model: "grok-4.20-beta"
 
   # === 行为配置 ===

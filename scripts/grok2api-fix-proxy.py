@@ -7,8 +7,8 @@ grok2api-fix-proxy.py
   python3 grok2api-fix-proxy.py [--port 4010]
 
 Aider 用法:
-  OPENAI_API_BASE=http://127.0.0.1:4010/v1 OPENAI_API_KEY=YJT1025zxy0427 \
-    aider --model openai/grok-4.1-fast --no-show-model-warnings
+  OPENAI_API_BASE=http://127.0.0.1:4010/v1 OPENAI_API_KEY=YOUR_API_KEY \
+    aider --model openai/YOUR_MODEL --no-show-model-warnings
 """
 
 import argparse
@@ -21,8 +21,8 @@ from urllib.error import HTTPError
 
 # defaults, overridden by CLI args
 _config = {
-    "upstream": "https://www.tongxuanzn.icu/v1",
-    "api_key": "YJT1025zxy0427",
+    "upstream": "https://www.YOUR_UPSTREAM_API/v1",
+    "api_key": "YOUR_API_KEY",
 }
 
 
@@ -188,8 +188,8 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     p = argparse.ArgumentParser(description="grok2api SSE→JSON 修复代理")
     p.add_argument("--port", type=int, default=4010)
-    p.add_argument("--upstream", type=str, default="https://www.tongxuanzn.icu/v1")
-    p.add_argument("--api-key", type=str, default="YJT1025zxy0427")
+    p.add_argument("--upstream", type=str, default="https://www.YOUR_UPSTREAM_API/v1")
+    p.add_argument("--api-key", type=str, default="YOUR_API_KEY")
     args = p.parse_args()
 
     _config["upstream"] = args.upstream.rstrip("/")
@@ -200,7 +200,7 @@ def main():
     print(f"   监听: http://127.0.0.1:{args.port}")
     print(f"   上游: {_config['upstream']}")
     print(f"   功能: SSE 流式 → 标准 JSON")
-    print(f"   Aider: OPENAI_API_BASE=http://127.0.0.1:{args.port}/v1 OPENAI_API_KEY={_config['api_key']} aider --model openai/grok-4.1-fast")
+    print(f"   Aider: OPENAI_API_BASE=http://127.0.0.1:{args.port}/v1 OPENAI_API_KEY={_config['api_key']} aider --model openai/YOUR_MODEL")
     print()
     try:
         server.serve_forever()

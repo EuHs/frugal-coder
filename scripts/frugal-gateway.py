@@ -33,7 +33,7 @@ from urllib.error import HTTPError
 # ── 默认配置 ──────────────────────────────────────────
 DEFAULTS = {
     "provider": {
-        "api_base": "https://www.tongxuanzn.icu/v1",
+        "api_base": "https://YOUR_UPSTREAM_API/v1",
         "api_key": "your-api-key-here",
         "model": "grok-4.1-fast",
         "fix_sse": True,          # 是否修复强制 SSE

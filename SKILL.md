@@ -38,11 +38,10 @@ OpenClaw (main model, tool-calling capable)
 
 ```bash
 # Edit config.yaml first, then:
-python3 scripts/frugal-gateway.py --config config.yaml
+python3 ~/.openclaw/skills/frugal-coder/scripts/frugal-gateway.py --config config.yaml
 
-# Or use environment variables:
-FRUGAL_API_BASE=https://your-api/v1 FRUGAL_API_KEY=sk-xxx FRUGAL_MODEL=model-id \
-  python3 scripts/frugal-gateway.py --port 4010
+# Or use the bundled grok2api fix proxy:
+python3 ~/.openclaw/skills/frugal-coder/scripts/grok2api-fix-proxy.py --port 4010
 ```
 
 ### 2. Verify
@@ -69,7 +68,7 @@ curl -s http://127.0.0.1:4010/v1/chat/completions \
 
 Or use the helper:
 ```bash
-python3 scripts/frugal-ask.py "你的问题"
+python3 ~/.openclaw/skills/frugal-coder/scripts/frugal-ask.py "你的问题"
 ```
 
 ### Pattern 2: Code Generation via Aider (free coding)
@@ -85,6 +84,8 @@ aider --model openai/$FRUGAL_MODEL --no-stream --no-show-model-warnings \
   --message "YOUR_CODE_REQUEST" --yes-always --no-auto-commits \
   file1.py file2.py
 ```
+
+**Note:** `$FRUGAL_MODEL` should match your configured model (e.g. `grok-4.1-fast`, `deepseek-coder`, `qwen2.5-coder:7b`).
 
 Key Aider flags:
 - `--no-stream` — REQUIRED (gateway aggregates SSE)
@@ -128,6 +129,29 @@ When receiving a task, apply these rules:
 | Git operations | Main model exec | `git add/commit/push` |
 | Run tests | Main model exec | `python pytest` etc. |
 | Multi-step coordination | Main model plans, cheap model executes each step | Orchestrate |
+
+## Task Routing (Automatic)
+
+**All cognitive tasks → cheap model (grok-ask or Aider). Main model only when necessary.**
+
+Priority order:
+
+1. **Code writing/editing/refactoring** → Aider + cheap model (free)
+2. **Text Q&A / translation / summary** → `frugal-ask.py` + cheap model (free)
+3. **Architecture design / brainstorming** → `frugal-ask.py` + cheap model (free)
+4. **Error analysis / debugging advice** → `frugal-ask.py` + cheap model (free)
+5. **System operations** (mkdir, git, exec) → Main model exec directly
+6. **Complex multi-step tasks** → Main model plans + cheap model executes each cognitive step
+7. **Simple chat / confirmation** → Main model replies directly
+8. **Complex chat / deep discussion** → Cheap model drafts → Main model polishes
+
+**When to use main model:**
+- Tasks requiring tool calling (exec, read, write, browser, etc.)
+- Multi-step coordination with verification
+- Tasks needing conversational context awareness
+- External actions (sending messages, emails)
+
+**Default cheap model:** grok-4.1-fast via grok2api (free). Switch via `config.yaml`.
 
 ## Configuration
 

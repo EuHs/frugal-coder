@@ -1,9 +1,9 @@
-# Frugal Coder 配置 - Grok2API
-# 用户: euhs 的实际配置
+# Frugal Coder 配置 - Grok2API 示例
+# 复制为 config.yaml 并填入你的实际信息
 
 provider:
-  api_base: "https://www.tongxuanzn.icu/v1"
-  api_key: "YJT1025zxy0427"
+  api_base: "https://YOUR_UPSTREAM_API/v1"
+  api_key: "YOUR_API_KEY"
   model: "grok-4.1-fast"
   fix_sse: true
   strip_tools: true

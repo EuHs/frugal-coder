@@ -39,28 +39,88 @@ echo "📁 安装 skill 到 $SKILL_DIR..."
 mkdir -p "$OPENCLAW_DIR/skills"
 cp -r "$(dirname "$0")" "$SKILL_DIR"
 
+# 5b. 自动注入路由表到 AGENTS.md
+echo "📝 注入路由规则到 AGENTS.md..."
+WORKSPACE_DIR="$OPENCLAW_DIR/workspace"
+AGENTS_MD="$WORKSPACE_DIR/AGENTS.md"
+
+if [ -f "$AGENTS_MD" ]; then
+    if grep -q "Frugal Coder" "$AGENTS_MD" 2>/dev/null; then
+        echo "  (路由规则已存在，跳过)"
+    else
+        cat >> "$AGENTS_MD" << 'ROUTING'
+
+## 🪙 Frugal Coder - 省钱优先规则
+
+**所有认知类任务优先委托给便宜/免费模型（通过 frugal-coder skill），只在必要时使用主模型。**
+
+### 路由规则（按顺序判断）
+
+1. **代码编写/编辑/重构** → 通过 Aider + 网关调用便宜模型（免费）
+2. **文本问答/解释/翻译/总结** → 通过 `frugal-ask.py` 调用便宜模型（免费）
+3. **架构设计/方案讨论/代码 Review** → 通过 `frugal-ask.py` 调用便宜模型（免费）
+4. **错误分析/调试建议** → 通过 `frugal-ask.py` 调用便宜模型（免费）
+5. **系统操作**（mkdir, git, 运行命令）→ 主模型 exec 直接执行
+6. **复杂多步任务** → 主模型做规划 + 便宜模型执行每步认知工作
+7. **简单闲聊/确认** → 主模型直接回复
+8. **复杂闲聊/深度讨论** → 便宜模型生成初稿，主模型润色回复
+
+### 执行方式
+
+- 网关地址：`http://127.0.0.1:4010`
+- Aider 编码：`OPENAI_API_BASE=http://127.0.0.1:4010/v1 OPENAI_API_KEY=any aider --no-stream --no-show-model-warnings`
+- 文本问答：`python3 ~/.openclaw/skills/frugal-coder/scripts/frugal-ask.py "问题"`
+- 网关必须先启动：`python3 ~/.openclaw/skills/frugal-coder/scripts/grok2api-fix-proxy.py --port 4010`
+
+### 什么时候用主模型
+
+- 需要 tool calling 的任务（exec, read, write, browser 等工具）
+- 多步协调（规划完需要逐步执行并验证）
+- 需要理解对话上下文的任务
+- 发送消息/邮件等外部操作
+
+### Provider 切换
+
+编辑 `~/.openclaw/skills/frugal-coder/config.yaml` 或 `~/.aider.conf.yml` 切换便宜模型。
+当前默认：grok-4.1-fast（通过 grok2api 逆向代理，免费）
+ROUTING
+        echo "  ✅ 路由规则已注入 AGENTS.md"
+    fi
+else
+    echo "  ⚠️ 未找到 AGENTS.md，跳过路由注入（可在安装后手动添加）"
+fi
+
+# 5c. 生成 ~/.aider.conf.yml（从 config.yaml 读取模型）
+echo "⚙️  生成 Aider 配置..."
+MODEL_NAME=$(sed -n 's/^  model: *["'"'"']//p' "$SKILL_DIR/config.yaml" 2>/dev/null | head -1 | tr -d '"'"'"' | xargs)
+[ -z "$MODEL_NAME" ] && MODEL_NAME="grok-4.1-fast"
+
+cat > "$HOME/.aider.conf.yml" << AIDER_CONFIG
+# Aider 默认配置 - 配合 frugal-coder 网关使用
+# 网关必须先启动（端口 4010）
+
+model: openai/$MODEL_NAME
+no-stream: true
+no-show-model-warnings: true
+no-auto-commits: true
+AIDER_CONFIG
+echo "  ✅ Aider 配置已生成（model: $MODEL_NAME）"
+
 # 6. 配置 OpenClaw 加载 skill
 echo "⚙️  配置 OpenClaw..."
 CONFIG="$OPENCLAW_DIR/openclaw.json"
 if [ -f "$CONFIG" ]; then
-    # 检查是否已有 extraDirs
     if grep -q '"extraDirs"' "$CONFIG"; then
-        # 已存在 extraDirs，确保包含 skills
         echo "  (openclaw.json extraDirs 已存在，跳过)"
     else
-        # 需要添加 extraDirs
         python3 -c "
 import json, sys
-
 config_path = '$CONFIG'
 with open(config_path, 'r') as f:
     config = json.load(f)
-
-# 添加 extraDirs
 config.setdefault('skills', {})
 config['skills'].setdefault('load', {})
 config['skills']['load']['extraDirs'] = ['~/.openclaw/skills']
-
 with open(config_path, 'w') as f:
     json.dump(config, f, indent=2, ensure_ascii=False)
 print('已更新 openclaw.json')
@@ -90,7 +150,6 @@ if [ "$(uname)" = "Darwin" ]; then
     LAUNCHD_PLIST="$HOME/Library/LaunchAgents/com.frugal-gateway.plist"
     LAUNCHD_SCRIPT="$SKILL_DIR/scripts/frugal-gateway-daemon.sh"
 
-    # 创建 daemon 启动脚本
     cat > "$LAUNCHD_SCRIPT" << 'SCRIPT'
 #!/bin/bash
 sleep 5
@@ -98,7 +157,6 @@ exec python3 "$HOME/.openclaw/skills/frugal-coder/scripts/grok2api-fix-proxy.py"
 SCRIPT
     chmod +x "$LAUNCHD_SCRIPT"
 
-    # 创建 launchd plist
     cat > "$LAUNCHD_PLIST" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 4.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -132,7 +190,7 @@ echo "========================"
 echo "✅ 安装完成！"
 echo ""
 echo "下一步："
-echo "1. 重启 OpenClaw（让 skill 加载）"
+echo "1. 重启 OpenClaw（让 skill + 路由规则生效）：openclaw restart"
 echo "2. 编辑 $SKILL_DIR/config.yaml 配置你的 API"
 echo "3. 打开新对话测试：'写一个回文检测函数'"
 echo ""
