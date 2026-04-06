@@ -85,7 +85,7 @@ aider --model openai/$FRUGAL_MODEL --no-stream --no-show-model-warnings \
   file1.py file2.py
 ```
 
-**Note:** `$FRUGAL_MODEL` should match your configured model (e.g. `grok-4.1-fast`, `deepseek-coder`, `qwen2.5-coder:7b`).
+**Note:** `$FRUGAL_MODEL` should match your configured model (e.g. `YOUR_MODEL`, `deepseek-coder`, `qwen2.5-coder:7b`).
 
 Key Aider flags:
 - `--no-stream` — REQUIRED (gateway aggregates SSE)
@@ -151,7 +151,7 @@ Priority order:
 - Tasks needing conversational context awareness
 - External actions (sending messages, emails)
 
-**Default cheap model:** grok-4.1-fast via grok2api (free). Switch via `config.yaml`.
+**Default cheap model:** YOUR_MODEL via grok2api (free). Switch via `config.yaml`.
 
 ## Configuration
 

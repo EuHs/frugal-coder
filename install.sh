@@ -82,7 +82,7 @@ if [ -f "$AGENTS_MD" ]; then
 ### Provider 切换
 
 编辑 `~/.openclaw/skills/frugal-coder/config.yaml` 或 `~/.aider.conf.yml` 切换便宜模型。
-当前默认：grok-4.1-fast（通过 grok2api 逆向代理，免费）
+当前默认：YOUR_MODEL（通过 grok2api 逆向代理，免费）
 ROUTING
         echo "  ✅ 路由规则已注入 AGENTS.md"
     fi
@@ -93,7 +93,7 @@ fi
 # 5c. 生成 ~/.aider.conf.yml（从 config.yaml 读取模型）
 echo "⚙️  生成 Aider 配置..."
 MODEL_NAME=$(sed -n 's/^  model: *["'"'"']//p' "$SKILL_DIR/config.yaml" 2>/dev/null | head -1 | tr -d '"'"'"' | xargs)
-[ -z "$MODEL_NAME" ] && MODEL_NAME="grok-4.1-fast"
+[ -z "$MODEL_NAME" ] && MODEL_NAME="YOUR_MODEL"
 
 cat > "$HOME/.aider.conf.yml" << AIDER_CONFIG
 # Aider 默认配置 - 配合 frugal-coder 网关使用
@@ -138,7 +138,7 @@ sleep 2
 # 8. 验证网关
 if curl -s -m 3 http://127.0.0.1:4010/v1/chat/completions \
     -H "Content-Type: application/json" \
-    -d '{"model":"grok-4.1-fast","messages":[{"role":"user","content":"ok"}],"max_tokens":5}' \
+    -d '{"model":"YOUR_MODEL","messages":[{"role":"user","content":"ok"}],"max_tokens":5}' \
     | grep -q "ok"; then
     echo "✅ 网关运行正常（端口 4010）"
 else

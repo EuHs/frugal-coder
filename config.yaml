@@ -6,7 +6,7 @@ provider:
   # 支持任意 OpenAI-compatible API
   api_base: "https://www.YOUR_UPSTREAM_API/v1"
   api_key: "YOUR_API_KEY"
-  model: "grok-4.20-beta"
+  model: "YOUR_MODEL"
 
   # === 行为配置 ===
   fix_sse: true        # 逆向代理通常需要（强制 SSE→JSON 修复）

@@ -35,7 +35,7 @@ DEFAULTS = {
     "provider": {
         "api_base": "https://YOUR_UPSTREAM_API/v1",
         "api_key": "your-api-key-here",
-        "model": "grok-4.1-fast",
+        "model": "YOUR_MODEL",
         "fix_sse": True,          # 是否修复强制 SSE
         "strip_tools": True,      # 是否清理 tools 参数
         "timeout": 180,

@@ -53,7 +53,7 @@ provider:
 provider:
   api_base: "https://YOUR_UPSTREAM_API/v1"
   api_key: "YOUR_API_KEY"
-  model: "grok-4.1-fast"
+  model: "YOUR_MODEL"
   fix_sse: true
   strip_tools: true
 ```
@@ -83,7 +83,7 @@ python3 ~/.openclaw/skills/frugal-coder/scripts/frugal-ask.py "你的问题"
 cd your-project  # 必须是 git 仓库
 OPENAI_API_BASE="http://127.0.0.1:4010/v1" \
 OPENAI_API_KEY="any" \
-aider --model openai/grok-4.1-fast --no-stream --no-show-model-warnings \
+aider --model openai/YOUR_MODEL --no-stream --no-show-model-warnings \
   --message "写一个 Calculator 类" yourfile.py
 ```
 
