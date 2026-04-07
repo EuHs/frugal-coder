@@ -377,16 +377,35 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
                     self._send_json(502, {"error": "all models unavailable"})
 
         elif classification == "NEEDS_TOOLS":
-            # 需要系统工具 → 用便宜模型处理（带完整上下文和工具描述）
-            # 便宜模型返回文本响应，OpenClaw 主循环根据内容决定是否调工具
-            log(f"  🔧 → 便宜模型（工具类请求，带完整上下文）")
+            # 需要系统工具 → 用便宜模型处理
+            # 策略：把系统提示+工具描述合并到用户消息里发单消息，绕过上游多消息限制
+            log(f"  🔧 → 便宜模型（工具类请求）")
             stats["cheap_handled"] += 1
 
-            result = cheap_model_respond(messages, max_tokens)
+            # 提取系统提示和工具描述
+            tool_desc = ""
+            if tools:
+                for t in tools:
+                    fn = t.get("function", {})
+                    tool_desc += f"- {fn.get('name','')}: {fn.get('description','')}\n"
+
+            # 提取真实用户消息
+            user_content = extract_last_user_message(messages)
+
+            # 构造单消息请求（绕过上游多消息 403 限制）
+            condensed = []
+            if tool_desc:
+                condensed.append({
+                    "role": "user",
+                    "content": f"[工具可用: \n{tool_desc}]\n\n用户请求: {user_content}"
+                })
+            else:
+                condensed.append({"role": "user", "content": user_content})
+
+            result = call_cheap_api(condensed, max_tokens=max_tokens)
             if result:
                 self._send_json(200, result)
             else:
-                # 便宜模型也挂了，尝试主模型
                 log(f"  ⚠️ 便宜模型失败，尝试主模型")
                 stats["cheap_handled"] -= 1
                 stats["main_handled"] += 1
