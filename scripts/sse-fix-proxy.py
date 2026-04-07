@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-grok2api-fix-proxy.py
-中间代理：把 grok2api 强制返回的 SSE 流式响应聚合成标准 OpenAI 非流式 JSON 响应。
+sse-fix-proxy.py
+中间代理：把上游 API 强制返回的 SSE 流式响应聚合成标准 OpenAI 非流式 JSON 响应。
+兼容所有只支持流式响应的上游 API（如 grok2api、Ollama 等）。
 
 用法:
-  python3 grok2api-fix-proxy.py [--port 4010]
+  python3 sse-fix-proxy.py [--port 4010]
 
 Aider 用法:
   OPENAI_API_BASE=http://127.0.0.1:4010/v1 OPENAI_API_KEY=YOUR_API_KEY \
@@ -66,7 +67,7 @@ def aggregate_sse(response_bytes: bytes) -> dict:
             usage = chunk["usage"]
 
     return {
-        "id": "grok2api-fixed",
+        "id": "sse-fix-proxy",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": model,
@@ -116,11 +117,11 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"error":"invalid JSON"}')
             return
 
-        # 清理 grok2api 不支持的参数
+        # 清理上游不支持的参数
         for key in ["tools", "tool_choice", "response_format", "parallel_tool_calls", "stream_options"]:
             payload.pop(key, None)
 
-        # 尝试请求非流式（grok2api 会忽略，但以防万一）
+        # 尝试请求非流式（部分上游会忽略，但以防万一）
         payload["stream"] = False
 
         url = self._upstream_url()
@@ -186,7 +187,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    p = argparse.ArgumentParser(description="grok2api SSE→JSON 修复代理")
+    p = argparse.ArgumentParser(description="SSE→JSON 修复代理（兼容所有流式上游）")
     p.add_argument("--port", type=int, default=4010)
     p.add_argument("--upstream", type=str, default="https://www.YOUR_UPSTREAM_API/v1")
     p.add_argument("--api-key", type=str, default="YOUR_API_KEY")
@@ -196,7 +197,7 @@ def main():
     _config["api_key"] = args.api_key
 
     server = HTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"🔧 grok2api-fix-proxy 启动")
+    print(f"🔧 sse-fix-proxy 启动")
     print(f"   监听: http://127.0.0.1:{args.port}")
     print(f"   上游: {_config['upstream']}")
     print(f"   功能: SSE 流式 → 标准 JSON")

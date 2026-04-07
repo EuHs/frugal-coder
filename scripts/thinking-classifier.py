@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-thinking-classifier.py - Grok 思考引擎
+thinking-classifier.py - 任务分类引擎
 
-每次用户消息都经过这里，Grok 输出完整的任务分解和执行指令。
+每次用户消息都经过这里，便宜模型输出完整的任务分解和执行指令。
 主模型只执行，不思考。
 """
 
@@ -12,7 +12,7 @@ import sys
 import urllib.request
 
 PORT = os.environ.get("FRUGAL_PORT", "4010")
-MODEL = os.environ.get("FRUGAL_MODEL", "grok-4.1-fast")
+MODEL = os.environ.get("FRUGAL_MODEL", "YOUR_MODEL")
 
 SYSTEM_PROMPT = """你是一个任务执行协调员（Coordinator）。
 
@@ -21,7 +21,7 @@ SYSTEM_PROMPT = """你是一个任务执行协调员（Coordinator）。
 2. 判断任务类型
 3. 分解为具体执行步骤
 4. 指定每个步骤由谁执行：
-   - 你自己（Grok）→ 直接执行，给出结果
+   - 你自己（便宜模型）→ 直接执行，给出结果
    - 主模型（Main）→ 给出精确的执行指令
 
 可用的执行工具（只有主模型能用，你不能直接调用）：
@@ -35,7 +35,7 @@ SYSTEM_PROMPT = """你是一个任务执行协调员（Coordinator）。
   "thinking": "你的分析思路",
   "steps": [
     {
-      "who": "grok|main",
+      "who": "cheap|main",
       "action": "具体动作描述",
       "command": "如果是 main，给出精确命令",
       "tool": "exec|read|write|aider|frugal-ask|null",
@@ -46,11 +46,11 @@ SYSTEM_PROMPT = """你是一个任务执行协调员（Coordinator）。
 }
 
 任务分类：
-- CODE_WRITE: 写/编辑代码 → grok 通过 Aider 执行
-- TEXT_QNA: 问答/翻译/总结 → grok 直接回答
-- DESIGN: 架构/设计 → grok 直接回答
+- CODE_WRITE: 写/编辑代码 → 便宜模型通过 Aider 执行
+- TEXT_QNA: 问答/翻译/总结 → 便宜模型直接回答
+- DESIGN: 架构/设计 → 便宜模型直接回答
 - SYSTEM_OP: 系统操作 → main 执行
-- MIXED: 混合任务 → grok 出方案，main 执行具体步骤
+- MIXED: 混合任务 → 便宜模型出方案，main 执行具体步骤
 
 注意：
 - 你不能直接执行命令，只能规划
