@@ -1,21 +1,19 @@
 # Frugal Coder - 用户配置
+# 通过管理后台 http://127.0.0.1:4020/ 修改
 
 provider:
-  # === 便宜模型配置（SIMPLE/COMPLEX 用） ===
-  api_base: "https://YOUR_UPSTREAM_API/v1"
-  api_key: "YOUR_API_KEY"
-  model: "YOUR_MODEL"
+  # === Cheap 模型上游配置 ===
+  # 即 sse-fix-proxy 的上游地址
+  api_base: "https://www.tongxuanzn.icu/v1"
+  api_key: "YJT1025zxy0427"
+  model: "grok-4.1-fast"
 
 gateway:
   port: 4010
 
-# === 主模型配置（direct 模式和 NEEDS_TOOLS 用）===
+# === 主模型配置（NEEDS_TOOLS 和 Direct 模式用）===
 # 支持任意 OpenAI-compatible API
-# minimax 示例（需填入 API key）:
-#   api_base: "https://api.minimaxi.com/anthropic"
-#   api_key: "your-minimax-key"
-#   model: "MiniMax-M2.7"
 main:
-  api_base: ""
+  api_base: "https://api.minimaxi.com/anthropic"
   api_key: ""
   model: "minimax/MiniMax-M2.7"
