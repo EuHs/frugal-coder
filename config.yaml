@@ -1,18 +1,21 @@
 # Frugal Coder - 用户配置
-# 填入你的便宜模型 provider 信息
 
 provider:
-  # === API 配置 ===
-  # 支持任意 OpenAI-compatible API
-  api_base: "https://www.YOUR_UPSTREAM_API/v1"
+  # === 便宜模型配置（SIMPLE/COMPLEX 用） ===
+  api_base: "https://YOUR_UPSTREAM_API/v1"
   api_key: "YOUR_API_KEY"
   model: "YOUR_MODEL"
 
-  # === 行为配置 ===
-  fix_sse: true        # 逆向代理通常需要（强制 SSE→JSON 修复）
-  strip_tools: true    # 不支持 tool calling 的模型需要
-  timeout: 180
-
 gateway:
-  host: "127.0.0.1"
   port: 4010
+
+# === 主模型配置（direct 模式和 NEEDS_TOOLS 用）===
+# 支持任意 OpenAI-compatible API
+# minimax 示例（需填入 API key）:
+#   api_base: "https://api.minimaxi.com/anthropic"
+#   api_key: "your-minimax-key"
+#   model: "MiniMax-M2.7"
+main:
+  api_base: ""
+  api_key: ""
+  model: "minimax/MiniMax-M2.7"

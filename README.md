@@ -6,6 +6,7 @@
 
 ## 核心特性
 
+- **双模式切换** — frugal（省钱）/ direct（直接），运行时切换
 - **三级路由** — SIMPLE / COMPLEX / NEEDS_TOOLS 自动分类
 - **ReAct 编排器** — 复杂任务多步推理，全程便宜模型
 - **模型无关** — 支持任意 OpenAI-compatible API（Grok、Ollama、DeepSeek、Qwen 等）
@@ -63,6 +64,29 @@ python3 scripts/smart-router.py --port 4020 --cheap-model YOUR_MODEL
 
 # OpenClaw 配置使用 smart-router 作为主模型
 openclaw restart
+```
+
+### 双模式切换
+
+```bash
+# 省钱模式（默认）- 所有请求经过三级路由分类
+#   SIMPLE      → 便宜模型（免费）
+#   COMPLEX     → ReAct 编排器（免费）
+#   NEEDS_TOOLS → 主模型（花钱）
+echo "frugal"  > ~/.openclaw/frugal-router.mode
+
+# 直接模式 - 所有请求透明转发给主模型（无路由）
+# 主模型不可用时自动降级到 frugal 逻辑
+echo "direct" > ~/.openclaw/frugal-router.mode
+
+# 切换后无需重启，smart-router 每次请求自动读取模式
+echo "frugal"  # 省钱
+echo "direct"  # 直接
+```
+
+查看当前模式：
+```bash
+curl http://127.0.0.1:4020/health | jq .mode
 ```
 
 ### 开机自启（macOS launchd）

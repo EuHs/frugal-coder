@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Library/Frameworks/Python.framework/Versions/3.10/bin/python3
 """
 smart-router.py — 智能路由网关
 
@@ -33,10 +33,62 @@ import os
 import sys
 import time
 import uuid
+import yaml
 import argparse
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
+
+# 模式切换文件
+MODE_FILE = os.path.expanduser("~/.openclaw/frugal-router.mode")
+# 配置文件（主模型独立配置）
+CONFIG_FILE = os.path.expanduser("~/.openclaw/skills/frugal-coder/config.yaml")
+
+def load_config():
+    """从 config.yaml 加载配置"""
+    config = {}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE) as f:
+                raw = yaml.safe_load(f)
+                if raw:
+                    config = raw
+        except Exception:
+            pass
+    return config
+
+def get_router_mode():
+    """读取当前运行模式（运行时可切换）"""
+    if os.path.exists(MODE_FILE):
+        try:
+            with open(MODE_FILE) as f:
+                mode = f.read().strip().lower()
+                if mode in ("frugal", "direct"):
+                    return mode
+        except Exception:
+            pass
+    return "frugal"
+
+def resolve_main_config():
+    """解析主模型配置（CLI参数 > 环境变量 > 配置文件）"""
+    global MAIN_URL, MAIN_KEY, MAIN_MODEL
+    cfg = load_config()
+    cfg_main_url = ""
+    cfg_main_key = ""
+    cfg_main_model = "minimax/MiniMax-M2.7"
+    if "main" in cfg:
+        cfg_main_url = cfg["main"].get("api_base", "")
+        cfg_main_key = cfg["main"].get("api_key", "")
+    if "main_model" in cfg:
+        cfg_main_model = cfg["main_model"]
+    if not MAIN_URL:
+        MAIN_URL = os.environ.get("MAIN_MODEL_URL", "") or cfg_main_url
+    if not MAIN_KEY:
+        MAIN_KEY = os.environ.get("MAIN_MODEL_KEY", "") or cfg_main_key
+    if not MAIN_MODEL:
+        MAIN_MODEL = os.environ.get("MAIN_MODEL_NAME", "") or cfg_main_model
+    if not MAIN_URL:
+        MAIN_URL = "https://api.minimaxi.com/anthropic/v1"
 
 # ─── 配置 ──────────────────────────────────────────────
 
@@ -45,10 +97,15 @@ CHEAP_PORT = os.environ.get("CHEAP_MODEL_PORT", "4010")
 CHEAP_MODEL = os.environ.get("CHEAP_MODEL_NAME", "YOUR_MODEL")
 CHEAP_URL = f"http://127.0.0.1:{CHEAP_PORT}/v1/chat/completions"
 
-# 真实主模型（OpenAI-compatible）
+# 主模型配置（NEEDS_TOOLS 和 direct 模式用）
 MAIN_URL = os.environ.get("MAIN_MODEL_URL", "")
 MAIN_KEY = os.environ.get("MAIN_MODEL_KEY", "")
 MAIN_MODEL = os.environ.get("MAIN_MODEL_NAME", "")
+
+# 模式切换文件（运行时切换模式）
+MODE_FILE = os.path.expanduser("~/.openclaw/frugal-router.mode")
+
+resolve_main_config()
 
 # 统计
 stats = {
@@ -56,7 +113,9 @@ stats = {
     "cheap_handled": 0,
     "react_handled": 0,
     "main_handled": 0,
+    "direct_handled": 0,
     "errors": 0,
+    "mode": "frugal",
     "started_at": datetime.now().isoformat(),
 }
 
@@ -311,8 +370,10 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
             self._send_json(200, {
                 "status": "ok",
                 "stats": stats,
+                "mode": get_router_mode(),
                 "cheap_model": CHEAP_MODEL,
                 "main_model": MAIN_MODEL or "(not configured)",
+                "main_url": MAIN_URL or "(not configured)",
             })
         elif self.path == "/stats":
             self._send_json(200, stats)
@@ -325,6 +386,8 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "not found"})
             return
 
+        current_mode = get_router_mode()
+        stats["mode"] = current_mode
         stats["total_requests"] += 1
         body = self._read_body()
 
@@ -333,7 +396,22 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
         max_tokens = body.get("max_tokens", 4096)
         stream = body.get("stream", False)
 
-        # 提取用户消息和系统提示
+        # === 直接模式：透明转发给主模型，失败则自动 fallback 到 frugal 逻辑 ===
+        if current_mode == "direct":
+            log(f"🌐 → 直接模式 → 主模型")
+            stats["direct_handled"] += 1
+            stats["main_handled"] += 1
+            result = call_main_api(body)
+            if result:
+                self._send_json(200, result)
+                return
+            else:
+                # 主模型不可用，自动降级到 frugal 逻辑
+                log(f"  ⚠️ 主模型不可用，自动降级到 frugal 逻辑")
+                stats["direct_handled"] -= 1
+                # 继续执行下面的 frugal 逻辑（不 return）
+
+        # === 省钱模式 ===
         user_msg = extract_last_user_message(messages)
         system_hint = ""
         for m in messages:
@@ -342,7 +420,7 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
 
         has_tools = len(tools) > 0
 
-        # === 心跳和特殊消息直接转发 ===
+        # 心跳和特殊消息直接转发
         if "HEARTBEAT" in user_msg or "heartbeat" in user_msg:
             log(f"💓 心跳 → 主模型")
             stats["main_handled"] += 1
@@ -442,31 +520,38 @@ class SmartRouterHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port):
+    # 初始化模式文件
+    if not os.path.exists(MODE_FILE):
+        with open(MODE_FILE, 'w') as f:
+            f.write('frugal')
+        print(f"   首次启动，写入默认模式 frugal → {MODE_FILE}")
+
     server = HTTPServer(("127.0.0.1", port), SmartRouterHandler)
     log(f"🚀 Smart Router 启动于 http://127.0.0.1:{port}")
+    log(f"   当前模式: {get_router_mode()} (切换: echo frugal > {MODE_FILE} 或 echo direct > {MODE_FILE})")
     log(f"   便宜模型: {CHEAP_MODEL} (port {CHEAP_PORT})")
-    log(f"   主模型: {MAIN_MODEL or '(未配置)'} ({MAIN_URL or '未配置'})")
-    log(f"   统计: http://127.0.0.1:{port}/stats")
+    log(f"   主模型: {MAIN_MODEL} ({MAIN_URL})")
+    log(f"   统计: http://127://127.0.0.1:{port}/stats")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         log("\n🛑 Smart Router 关闭")
         server.server_close()
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Smart Router - 智能路由网关")
-    parser.add_argument("--port", type=int, default=ROUTER_PORT)
-    parser.add_argument("--main-url", default=MAIN_URL, help="真实主模型 API URL")
-    parser.add_argument("--main-key", default=MAIN_KEY, help="真实主模型 API key")
-    parser.add_argument("--main-model", default=MAIN_MODEL, help="真实主模型名称")
-    parser.add_argument("--cheap-model", default=CHEAP_MODEL, help="便宜模型名称")
-    args = parser.parse_args()
+    _parser = argparse.ArgumentParser(description="Smart Router")
+    _parser.add_argument("--port", type=int, default=ROUTER_PORT)
+    _parser.add_argument("--cheap-model", default=CHEAP_MODEL)
+    _parser.add_argument("--main-url", default="")
+    _parser.add_argument("--main-key", default="")
+    _parser.add_argument("--main-model", default="")
+    _args = _parser.parse_args()
 
-    # 更新配置
-    MAIN_URL = args.main_url
-    MAIN_KEY = args.main_key
-    MAIN_MODEL = args.main_model
-    CHEAP_MODEL = args.cheap_model
+    # 用 exec 修改全局变量（避免 global 声明时序问题）
+    _g = globals()
+    if _args.main_url: _g["MAIN_URL"] = _args.main_url
+    if _args.main_key: _g["MAIN_KEY"] = _args.main_key
+    if _args.main_model: _g["MAIN_MODEL"] = _args.main_model
+    if _args.cheap_model: _g["CHEAP_MODEL"] = _args.cheap_model
 
-    run_server(args.port)
+    run_server(_args.port)
